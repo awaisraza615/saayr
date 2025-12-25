@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- App Display Name -->
+    <key>CFBundleDisplayName</key>
+    <string>Saayr</string>
+    
+    <!-- App Name -->
+    <key>CFBundleName</key>
+    <string>Saayr</string>
+    
+    <!-- Bundle Identifier -->
+    <key>CFBundleIdentifier</key>
+    <string>com.saayr.app</string>
+    
+    <!-- Version -->
+    <key>CFBundleShortVersionString</key>
+    <string>1.0.0</string>
+    
+    <!-- Build Number -->
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    
+    <!-- Location Permissions -->
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>We need your location to show nearby check-in points and enhance your gaming experience</string>
+    
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>We use your location to provide check-in features and location-based challenges</string>
+    
+    <!-- Camera Permission (for future QR code scanning) -->
+    <key>NSCameraUsageDescription</key>
+    <string>We need camera access to scan QR codes at partner locations</string>
+    
+    <!-- Photo Library (for future profile pictures) -->
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>We need access to your photos to set your profile picture</string>
+    
+    <!-- Supported Interface Orientations (iPhone) -->
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+    </array>
+    
+    <!-- Supported Interface Orientations (iPad) -->
+    <key>UISupportedInterfaceOrientations~ipad</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+    </array>
+    
+    <!-- Custom Fonts -->
+    <key>UIAppFonts</key>
+    <array>
+        <string>Almarai-Regular.ttf</string>
+        <string>Almarai-Bold.ttf</string>
+        <string>Almarai-ExtraBold.ttf</string>
+        <string>LibreFranklin-Regular.ttf</string>
+        <string>LibreFranklin-Bold.ttf</string>
+        <string>LibreFranklin-SemiBold.ttf</string>
+    </array>
+    
+    <!-- Appearance -->
+    <key>UIUserInterfaceStyle</key>
+    <string>Light</string>
+    
+    <!-- Status Bar Style -->
+    <key>UIStatusBarStyle</key>
+    <string>UIStatusBarStyleDefault</string>
+    
+    <!-- Launch Screen -->
+    <key>UILaunchScreen</key>
+    <dict>
+        <key>UIImageName</key>
+        <string>LaunchIcon</string>
+        <key>UIColorName</key>
+        <string>LaunchColor</string>
+    </dict>
+    
+    <!-- Scene Configuration -->
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <false/>
+        <key>UISceneConfigurations</key>
+        <dict>
+            <key>UIWindowSceneSessionRoleApplication</key>
+            <array>
+                <dict>
+                    <key>UISceneConfigurationName</key>
+                    <string>Default Configuration</string>
+                    <key>UISceneDelegateClassName</key>
+                    <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+                </dict>
+            </array>
+        </dict>
+    </dict>
+    
+    <!-- Background Modes (for future features) -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>fetch</string>
+        <string>remote-notification</string>
+        <string>location</string>
+    </array>
+    
+    <!-- App Transport Security -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <false/>
+        <!-- For development only - remove in production -->
+        <!--
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>localhost</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+            </dict>
+        </dict>
+        -->
+    </dict>
+    
+    <!-- Required Device Capabilities -->
+    <key>UIRequiredDeviceCapabilities</key>
+    <array>
+        <string>armv7</string>
+        <string>location-services</string>
+    </array>
+</dict>
+</plist>
