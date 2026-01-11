@@ -8,26 +8,28 @@ struct AuthenticationFlow: View {
             switch authManager.authState {
             case .onboarding:
                 OnboardingView()
-            case .phoneEntry:
+            case .phoneEntry,.forgotPasscode:
                 PhoneAuthView()
-            case .otpVerification:
+            case .otpVerification, .resetOtp:
                 OTPVerificationView(
                     phoneNumber: authManager.phoneNumber,
-                                        onVerified: {
-                                            authManager.authState = .profileSetup
-                                        },
-                                        onBack: {
-                                            authManager.authState = .phoneEntry
-                                        }
+                    onVerified: {
+                        authManager.authState = .profileSetup
+                    },
+                    onBack: {
+                        authManager.authState = .phoneEntry
+                    }
                 )
             case .profileSetup:
                 ProfileSetupView()
             case .authenticated:
                 EmptyView() // This shouldn't be reached
-            case .pinFlow:
+            case .pinFlow, .resetPasscode:
                 PINFlowView()
             case .petName:
                 PetSelectionView()
+            case .login:
+                PINLoginView()
             }
         }
         .transition(.opacity)

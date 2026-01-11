@@ -86,9 +86,10 @@ struct PetSelectionView: View {
                         
                         // Start Journey Button
                         Button(action: {
-                            if petName.count < 2 { return }
-                            authManager.tempPetName = petName
-                            authManager.completeSetup()
+                            guard petName.count >= 2 else { return }
+
+                                authManager.tempPetName = petName
+                                authManager.completeSetup()
                         }) {
                             HStack {
                                 Text(languageManager.currentLanguage == .english ? "Start Your Journey" : "ابدأ رحلتك")

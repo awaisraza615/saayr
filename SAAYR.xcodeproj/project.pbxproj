@@ -6,13 +6,31 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		0D744B182F12815500116FD4 /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 0D744B172F12815500116FD4 /* Alamofire */; };
+		0D744B1D2F12816700116FD4 /* Kingfisher in Frameworks */ = {isa = PBXBuildFile; productRef = 0D744B1C2F12816700116FD4 /* Kingfisher */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		0D0CECEA2EF4A47C00FB6A6F /* SAAYR.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SAAYR.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		0D744B262F128A5F00116FD4 /* Exceptions for "SAAYR" folder in "SAAYR" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 0D0CECE92EF4A47C00FB6A6F /* SAAYR */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		0D0CECEC2EF4A47C00FB6A6F /* SAAYR */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				0D744B262F128A5F00116FD4 /* Exceptions for "SAAYR" folder in "SAAYR" target */,
+			);
 			path = SAAYR;
 			sourceTree = "<group>";
 		};
@@ -23,6 +41,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0D744B1D2F12816700116FD4 /* Kingfisher in Frameworks */,
+				0D744B182F12815500116FD4 /* Alamofire in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +85,8 @@
 			);
 			name = SAAYR;
 			packageProductDependencies = (
+				0D744B172F12815500116FD4 /* Alamofire */,
+				0D744B1C2F12816700116FD4 /* Kingfisher */,
 			);
 			productName = SAAYR;
 			productReference = 0D0CECEA2EF4A47C00FB6A6F /* SAAYR.app */;
@@ -94,6 +116,10 @@
 			);
 			mainGroup = 0D0CECE12EF4A47C00FB6A6F;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				0D744B162F12815500116FD4 /* XCRemoteSwiftPackageReference "Alamofire" */,
+				0D744B1B2F12816700116FD4 /* XCRemoteSwiftPackageReference "Kingfisher" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0D0CECEB2EF4A47C00FB6A6F /* Products */;
 			projectDirPath = "";
@@ -256,6 +282,7 @@
 				DEVELOPMENT_TEAM = 2Z8L5J3W57;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SAAYR/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -289,6 +316,7 @@
 				DEVELOPMENT_TEAM = 2Z8L5J3W57;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SAAYR/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -334,6 +362,38 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		0D744B162F12815500116FD4 /* XCRemoteSwiftPackageReference "Alamofire" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
+			requirement = {
+				kind = exactVersion;
+				version = 5.11.0;
+			};
+		};
+		0D744B1B2F12816700116FD4 /* XCRemoteSwiftPackageReference "Kingfisher" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/onevcat/Kingfisher.git";
+			requirement = {
+				kind = exactVersion;
+				version = 8.6.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0D744B172F12815500116FD4 /* Alamofire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0D744B162F12815500116FD4 /* XCRemoteSwiftPackageReference "Alamofire" */;
+			productName = Alamofire;
+		};
+		0D744B1C2F12816700116FD4 /* Kingfisher */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0D744B1B2F12816700116FD4 /* XCRemoteSwiftPackageReference "Kingfisher" */;
+			productName = Kingfisher;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 0D0CECE22EF4A47C00FB6A6F /* Project object */;
 }

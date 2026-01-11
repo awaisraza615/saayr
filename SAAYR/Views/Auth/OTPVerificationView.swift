@@ -4,18 +4,19 @@ import Combine
 import SwiftUI
 
 struct OTPVerificationView: View {
-
+    
     let phoneNumber: String
     let onVerified: () -> Void
     let onBack: () -> Void
-
+    
     @State private var otp = ""
     @State private var isVerifying = false
     @State private var showSuccess = false
     @State private var resendTimer = 60
-
+    @EnvironmentObject var authManager: AuthManager
+    
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
-
+    
     // MARK: - Body
     var body: some View {
         ZStack {
@@ -30,19 +31,19 @@ struct OTPVerificationView: View {
                 endPoint: .bottom
             )
             .ignoresSafeArea()
-
+            
             // Floating particles
             ForEach(Array(["📬","✉️","✨","⭐"].enumerated()), id: \.offset) { index, emoji in
                 FloatingParticleOTP(emoji: emoji, index: index)
             }
-
+            
             VStack {
                 header
                 content
                 numberPad
             }
             .padding(24)
-
+            
             if showSuccess {
                 successOverlay
             }
@@ -56,23 +57,32 @@ struct OTPVerificationView: View {
             autoVerify()
         }
     }
-
+    
     // MARK: - Header
     private var header: some View {
         HStack {
-            Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundColor(Color(hex: "#059669"))
+            if authManager.authState == .resetOtp {
+                EmptyView()
+            }else{
+                Button(action: onBack) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(Color(hex: "#059669"))
+                }
             }
             Spacer()
+            // ✅ SHOW OTP (DEBUG ONLY)
+            if let otp = authManager.otp {
+                Text("OTP: \(otp)")
+                    .foregroundColor(.green)
+            }
         }
     }
-
+    
     // MARK: - Main Content
     private var content: some View {
         VStack(spacing: 32) {
-
+            
             // Icon
             ZStack {
                 Circle()
@@ -89,25 +99,25 @@ struct OTPVerificationView: View {
                         )
                     )
                     .frame(width: 120, height: 120)
-
+                
                 Text("📬")
                     .font(.system(size: 64))
             }
-
+            
             Text("Enter verification code")
                 .font(.system(size: 32, weight: .bold))
-
+            
             Text(maskedPhoneText)
                 .font(.system(size: 16))
                 .foregroundColor(.gray)
                 .multilineTextAlignment(.center)
-
+            
             otpBoxes
             resendSection
         }
         .frame(maxHeight: .infinity)
     }
-
+    
     // MARK: - OTP Boxes
     private var otpBoxes: some View {
         HStack(spacing: 8) {
@@ -124,7 +134,7 @@ struct OTPVerificationView: View {
                             RoundedRectangle(cornerRadius: 12)
                                 .fill(Color.white.opacity(0.9))
                         )
-
+                    
                     Text(digit(at: index))
                         .font(.system(size: 24, weight: .bold))
                 }
@@ -132,7 +142,7 @@ struct OTPVerificationView: View {
             }
         }
     }
-
+    
     // MARK: - Resend
     // MARK: - Resend
     private var resendSection: some View {
@@ -165,8 +175,8 @@ struct OTPVerificationView: View {
             }
         }
     }
-
-
+    
+    
     // Pie slice shape for filled circle progress
     struct PieSlice: Shape {
         var progress: Double // 0.0 → 1.0
@@ -192,8 +202,8 @@ struct OTPVerificationView: View {
             set { progress = newValue }
         }
     }
-
-
+    
+    
     // MARK: - Number Pad
     private var numberPad: some View {
         VStack(spacing: 12) {
@@ -206,7 +216,7 @@ struct OTPVerificationView: View {
                     }
                 }
             }
-
+            
             HStack(spacing: 12) {
                 Spacer()
                 NumberButton(text: "0") {
@@ -224,16 +234,16 @@ struct OTPVerificationView: View {
         }
         .padding(.vertical, 16)
     }
-
+    
     // MARK: - Success Overlay
     private var successOverlay: some View {
         ZStack {
             Color.black.opacity(0.5).ignoresSafeArea()
-
+            
             ForEach(0..<20, id: \.self) { index in
                 ConfettiParticle(index: index)
             }
-
+            
             Circle()
                 .fill(Color.white)
                 .frame(width: 120, height: 120)
@@ -245,39 +255,52 @@ struct OTPVerificationView: View {
         }
         .transition(.opacity.combined(with: .scale))
     }
-
+    
     // MARK: - Helpers
     private func digit(at index: Int) -> String {
         guard index < otp.count else { return "" }
         return String(Array(otp)[index])
     }
-
+    
     private func appendDigit(_ digit: String) {
         if otp.count < 6 {
             otp.append(digit)
         }
     }
-
+    
     private func deleteDigit() {
         guard !otp.isEmpty else { return }
         otp.removeLast()
     }
-
+    
     private func autoVerify() {
         guard otp.count == 6, !isVerifying else { return }
 
         isVerifying = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            withAnimation {
+
+        authManager.verifyOTP(otp: otp) { isNewUser in
+            // 1️⃣ Show success overlay
+            withAnimation(.easeInOut) {
                 showSuccess = true
             }
+
+            // 2️⃣ WAIT so user can see it
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                onVerified()
+
+                withAnimation(.easeInOut) {
+                    if isNewUser {
+                        authManager.authState = .profileSetup
+                    } else {
+                        authManager.authState = .login
+                    }
+                }
+
                 isVerifying = false
             }
         }
     }
 
+    
     private var maskedPhoneText: String {
         let masked = phoneNumber.prefix(7) + "**" + phoneNumber.suffix(2)
         return "We sent a 6-digit code to\n+966 \(masked)"
@@ -287,7 +310,7 @@ struct OTPVerificationView: View {
 struct NumberButton: View {
     let text: String
     let onTap: () -> Void
-
+    
     var body: some View {
         Button(action: onTap) {
             Text(text)
@@ -308,21 +331,21 @@ struct NumberButton: View {
 struct FloatingParticleOTP: View {
     let emoji: String
     let index: Int
-
+    
     @State private var offsetY: CGFloat = 0
     @State private var offsetX: CGFloat = 0
-
+    
     private let positions: [(CGFloat, CGFloat)] = [
         (0.15, 0.2),
         (0.85, 0.25),
         (0.1, 0.6),
         (0.9, 0.65)
     ]
-
+    
     var body: some View {
         GeometryReader { geo in
             let pos = positions[index % positions.count]
-
+            
             Text(emoji)
                 .font(.system(size: 32))
                 .opacity(0.4)
@@ -333,7 +356,7 @@ struct FloatingParticleOTP: View {
                 .onAppear {
                     withAnimation(
                         .easeInOut(duration: 3 + Double(index))
-                            .repeatForever(autoreverses: true)
+                        .repeatForever(autoreverses: true)
                     ) {
                         offsetY = -30
                         offsetX = 15
@@ -346,16 +369,16 @@ struct FloatingParticleOTP: View {
 
 struct ConfettiParticle: View {
     let index: Int
-
+    
     @State private var offsetY: CGFloat = -200
     @State private var rotation: Double = 0
-
+    
     private let emojis = ["🎉", "✨", "🎊", "⭐", "💫", "🌟"]
-
+    
     var body: some View {
         GeometryReader { geo in
             let startX = CGFloat.random(in: -geo.size.width/2...geo.size.width/2)
-
+            
             Text(emojis[index % emojis.count])
                 .font(.system(size: 24))
                 .opacity(0.8)
@@ -364,7 +387,7 @@ struct ConfettiParticle: View {
                 .onAppear {
                     withAnimation(
                         .linear(duration: 2 + Double(index) * 0.1)
-                            .repeatForever(autoreverses: false)
+                        .repeatForever(autoreverses: false)
                     ) {
                         offsetY = geo.size.height + 200
                         rotation = 360
@@ -380,12 +403,12 @@ struct ConfettiParticle: View {
 #Preview {
     OTPVerificationView(
         phoneNumber: "512345678",
-               onVerified: {
-                   print("Verified")
-               },
-               onBack: {
-                   print("Back")
-               }
+        onVerified: {
+            print("Verified")
+        },
+        onBack: {
+            print("Back")
+        }
     )
     .environmentObject(AuthManager())
     .environmentObject(LanguageManager())

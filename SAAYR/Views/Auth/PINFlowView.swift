@@ -63,9 +63,20 @@ struct PINFlowView: View {
                     gradientColors: gradientColors,
                     onComplete: {
                         if showingConfirmation {
-                            showSuccess = true
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                authManager.authState = .petName
+                            authManager.tempPasscode = $confirmPin.wrappedValue
+                            if authManager.authState == .resetPasscode{
+                                authManager.authState = .resetOtp
+                            } else{
+                                authManager.completeSignup {
+                                    // Navigate to pet name after short delay to show success
+                                    showSuccess = true
+                                    
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                                        withAnimation {
+                                            authManager.authState = .petName
+                                        }
+                                    }
+                                }
                             }
                         } else {
                             // Auto-switch to confirmation

@@ -10,6 +10,10 @@ enum AuthState {
     case authenticated
     case pinFlow
     case petName
+    case login
+    case forgotPasscode
+    case resetPasscode
+    case resetOtp
 }
 
 class AuthManager: ObservableObject {
@@ -25,6 +29,10 @@ class AuthManager: ObservableObject {
     @Published var tempEmail: String = ""
     @Published var tempPetName: String = ""
     @Published var tempPetType: String = ""
+    @Published var tempPasscode: String = ""
+    
+    @Published var otp: String?
+    
     
     init() {
         // Check if user is already authenticated
@@ -37,38 +45,288 @@ class AuthManager: ObservableObject {
         }
     }
     
+    
+    
+    func sendOTP() {
+        isLoading = true
+        otp = nil
+        errorMessage = nil
+        
+        let parameters: [String: Any] = [
+            "phone_number": "966" + phoneNumber
+        ]
+        
+        ServiceModel.shared.postRequest(endpoint: self.authState == .forgotPasscode ? WebService.forgotPasscode : WebService.sendOtp ,
+                                        parameters: parameters) { result in
+            DispatchQueue.main.async {
+                self.isLoading = false
+                
+                switch result {
+                case .success(let data):
+                    do {
+                        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                            
+                            if let otp = json["otp"] as? String {
+                                self.otp = otp
+                                print("✅ OTP:", otp)
+                                self.authState = self.authState == .forgotPasscode ? .resetPasscode : .otpVerification
+                                
+                                
+                            } else {
+                                self.errorMessage = json["message"] as? String ?? "Unexpected response"
+                                print("❌ Error:", self.errorMessage ?? "")
+                            }
+                        }
+                    } catch {
+                        self.errorMessage = error.localizedDescription
+                        print("❌ Parsing Error:", error.localizedDescription)
+                    }
+                    
+                case .failure(let error):
+                    self.errorMessage = error.localizedDescription
+                    print("❌ API Error:", error.localizedDescription)
+                }
+            }
+        }
+    }
+    
+    
+    func verifyOTP(otp: String, onResult: @escaping (_ isNewUser: Bool) -> Void) {
+        isLoading = true
+        errorMessage = nil
+        
+        var parameters: [String: Any] = [
+            "phone_number": "966" + phoneNumber,
+            "otp": otp
+        ]
+        
+        if self.authState == .resetOtp {
+            parameters["new_passcode"] = tempPasscode
+            
+            ServiceModel.shared.postRequest(
+                endpoint: WebService.resetPasscode,
+                parameters: parameters
+            ) { result in
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    
+                    switch result {
+                    case .success(let data):
+                        do {
+                            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                                
+                                let success = json["success"] as? Bool ?? false
+                                let message = json["message"] as? String ?? "Something went wrong"
+                                
+                                if success {
+                                    print("✅ Passcode Reset Success:", message)
+                                    
+                                    // Clear temp passcode
+                                    self.tempPasscode = ""
+                                    
+                                    self.authState = .login
+                                } else {
+                                    self.errorMessage = message
+                                    print("❌ Reset Failed:", message)
+                                }
+                            }
+                        } catch {
+                            self.errorMessage = error.localizedDescription
+                            print("❌ Parsing Error:", error.localizedDescription)
+                        }
+                        
+                    case .failure(let error):
+                        self.errorMessage = error.localizedDescription
+                        print("❌ API Error:", error.localizedDescription)
+                    }
+                }
+            }
+        }
+        else{
+            ServiceModel.shared.postRequest(endpoint: WebService.verifyOtp,
+                                            parameters: parameters) { result in
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                    
+                    switch result {
+                    case .success(let data):
+                        do {
+                            if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                                
+                                let success = json["success"] as? Bool ?? false
+                                if success, let data = json["data"] as? [String: Any] {
+                                    let isNewUser = data["is_new_user"] as? Bool ?? false
+                                    let userId = data["user_id"] as? Int
+                                    
+                                    print("✅ OTP Verified")
+                                    print("🆕 Is New User:", isNewUser)
+                                    print("👤 User ID:", userId ?? -1)
+                                    
+                                    onResult(isNewUser)
+                                    
+                                } else {
+                                    // ✅ HERE json exists
+                                    self.errorMessage = json["message"] as? String ?? "OTP failed"
+                                    print("❌ OTP Failed:", self.errorMessage ?? "")
+                                }
+                            }
+                        } catch {
+                            self.errorMessage = error.localizedDescription
+                            print("❌ Parsing Error:", error.localizedDescription)
+                        }
+                        
+                    case .failure(let error):
+                        self.errorMessage = error.localizedDescription
+                        print("❌ API Error:", error.localizedDescription)
+                    }
+                }
+            }
+        }
+        
+        
+    }
+    
+    
+    
+    func completeSignup(onSuccess: @escaping () -> Void) {
+        guard !tempFullName.isEmpty, !tempEmail.isEmpty, !tempPasscode.isEmpty else { return }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        // Prepare parameters
+        let parameters: [String: Any] = [
+            "phone_number": "966" + phoneNumber,
+            "full_name": tempFullName,
+            "email": tempEmail,
+            "passcode": tempPasscode
+        ]
+        
+        
+        
+        ServiceModel.shared.postRequest(
+            endpoint: WebService.completeSignup,
+            parameters: parameters,
+        ) { result in
+            DispatchQueue.main.async {
+                self.isLoading = false
+                
+                switch result {
+                case .success(let data):
+                    do {
+                        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                            
+                            if let accessToken = json["access_token"] as? String,
+                               let tokenType = json["token_type"] as? String,
+                               let userId = json["user_id"] as? Int {
+                                
+                                print("✅ Signup Success")
+                                print("Access Token:", accessToken)
+                                print("Token Type:", tokenType)
+                                print("User ID:", userId)
+                                
+                                // Save user data
+                                let user = User(
+                                    email: self.tempEmail,
+                                    firstName: self.tempFullName,
+                                    lastName: "",
+                                    accessToken: accessToken,
+                                    refreshToken: "",
+                                    id: userId
+                                )
+                                UserModel.shared.saveUser(user)
+                                
+                                // Call success closure for UI navigation
+                                onSuccess()
+                                
+                            } else {
+                                self.errorMessage = "Unexpected response from server"
+                                print("❌ Error:", self.errorMessage ?? "")
+                            }
+                            
+                        }
+                    } catch {
+                        self.errorMessage = error.localizedDescription
+                        print("❌ Parsing Error:", error.localizedDescription)
+                    }
+                    
+                case .failure(let error):
+                    self.errorMessage = error.localizedDescription
+                    print("❌ API Error:", error.localizedDescription)
+                }
+            }
+        }
+    }
+    
+    func completeLogin(onSuccess: @escaping () -> Void) {
+        guard !tempPasscode.isEmpty else { return }
+        
+        isLoading = true
+        errorMessage = nil
+        
+        let parameters: [String: Any] = [
+            "phone_number": "966" + phoneNumber,
+            "passcode": tempPasscode
+        ]
+        
+        ServiceModel.shared.postRequest(
+            endpoint: WebService.login,
+            parameters: parameters
+        ) { result in
+            DispatchQueue.main.async {
+                self.isLoading = false
+                
+                switch result {
+                case .success(let data):
+                    do {
+                        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                            
+                            // ❌ ERROR CASE (401)
+                            if let detail = json["detail"] as? String {
+                                self.errorMessage = detail
+                                print("❌ Login Failed:", detail)
+                                return
+                            }
+                            
+                            // ✅ SUCCESS CASE
+                            if let accessToken = json["access_token"] as? String,
+                               let tokenType = json["token_type"] as? String,
+                               let userId = json["user_id"] as? Int {
+                                
+                                print("✅ Login Success")
+                                
+                                let user = User(
+                                    email: "",
+                                    firstName: "",
+                                    lastName: "",
+                                    accessToken: accessToken,
+                                    refreshToken: "",
+                                    id: userId
+                                )
+                                UserModel.shared.saveUser(user)
+                                
+                                onSuccess()
+                            } else {
+                                self.errorMessage = "Unexpected response"
+                            }
+                        }
+                    } catch {
+                        self.errorMessage = error.localizedDescription
+                    }
+                    
+                case .failure(let error):
+                    self.errorMessage = error.localizedDescription
+                }
+            }
+        }
+    }
+    
     // MARK: - Onboarding
     
     func completeOnboarding() {
         UserDefaults.standard.set(true, forKey: "hasSeenOnboarding")
         withAnimation {
             authState = .phoneEntry
-        }
-    }
-    
-    // MARK: - Phone Authentication
-    
-    func sendOTP() {
-        guard validatePhoneNumber() else {
-            errorMessage = "Please enter a valid phone number"
-            return
-        }
-        
-        isLoading = true
-        errorMessage = nil
-        
-        // Simulate API call to send OTP
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-            self?.isLoading = false
-            
-            // In production, this would call your backend API
-            // For demo, we'll simulate success
-            withAnimation {
-                self?.authState = .otpVerification
-            }
-            
-            // For demo purposes - print OTP code (in production, this comes via SMS)
-            print("📱 Demo OTP Code: 123456")
         }
     }
     
@@ -158,8 +416,8 @@ class AuthManager: ObservableObject {
             // Save profile data
             UserDefaults.standard.set(self?.tempFullName, forKey: "fullName")
             UserDefaults.standard.set(self?.tempEmail, forKey: "email")
-//            UserDefaults.standard.set(self?.tempPetName, forKey: "petName")
-//            UserDefaults.standard.set(self?.tempPetType, forKey: "petType")
+            //            UserDefaults.standard.set(self?.tempPetName, forKey: "petName")
+            //            UserDefaults.standard.set(self?.tempPetType, forKey: "petType")
             UserDefaults.standard.set(true, forKey: "hasProfile")
             
             // Complete authentication
@@ -170,27 +428,65 @@ class AuthManager: ObservableObject {
     func completeSetup() {
         
         
+        guard !tempPetName.isEmpty else { return }
+        
         isLoading = true
         errorMessage = nil
         
-        // Simulate API call to create profile
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
-            self?.isLoading = false
-            
-          
-           UserDefaults.standard.set(self?.tempPetName, forKey: "petName")
-
-            // Complete authentication
-            self?.completeAuthentication()
+        let parameters: [String: Any] = [
+            "falcon_name": tempPetName
+        ]
+        
+        ServiceModel.shared.postRequest(
+            endpoint: WebService.addFalconName,
+            parameters: parameters,
+        ) { result in
+            DispatchQueue.main.async {
+                self.isLoading = false
+                
+                switch result {
+                case .success(let data):
+                    do {
+                        if let json = try JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                            
+                            let success = json["success"] as? Bool ?? false
+                            let message = json["message"] as? String ?? "Falcon name update failed"
+                            
+                            if success {
+                                print("✅ Falcon Name Added:", message)
+                                // Optionally update tempPetName or save to user model
+                                if let data = json["data"] as? [String: Any],
+                                   let falconName = data["falcon_name"] as? String {
+                                    self.tempPetName = falconName
+                                }
+                                
+                                self.completeAuthentication()
+                                
+                            } else {
+                                self.errorMessage = message
+                                print("❌ Error:", message)
+                            }
+                        }
+                    } catch {
+                        self.errorMessage = error.localizedDescription
+                        print("❌ Parsing Error:", error.localizedDescription)
+                    }
+                    
+                case .failure(let error):
+                    self.errorMessage = error.localizedDescription
+                    print("❌ API Error:", error.localizedDescription)
+                }
+            }
         }
+        
     }
     
     func validateProfileData() -> Bool {
         return !tempFullName.isEmpty &&
-               !tempEmail.isEmpty &&
-               tempEmail.contains("@")
-//                &&!tempPetName.isEmpty &&
-//               !tempPetType.isEmpty
+        !tempEmail.isEmpty &&
+        tempEmail.contains("@")
+        //                &&!tempPetName.isEmpty &&
+        //               !tempPetType.isEmpty
     }
     
     // MARK: - Complete Authentication
