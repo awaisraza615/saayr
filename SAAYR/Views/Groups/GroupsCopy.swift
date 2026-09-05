@@ -246,6 +246,11 @@ extension GroupsCopy {
 extension GroupsCopy {
 
     var inviteLinkTitle: String { isEnglish ? "Invite link" : "رابط الدعوة" }
+
+    var notificationsOnLabel: String  { isEnglish ? "Turn on notifications" : "تشغيل الإشعارات" }
+    var notificationsOffLabel: String { isEnglish ? "Turn off notifications" : "إيقاف الإشعارات" }
+    var toastNotificationsOn: String  { isEnglish ? "Notifications on 🔔" : "الإشعارات مفعّلة 🔔" }
+    var toastNotificationsOff: String { isEnglish ? "Notifications off 🔕" : "الإشعارات متوقفة 🔕" }
     var inviteLinkOK: String    { isEnglish ? "OK" : "حسنًا" }
 
     /// The invite joins outright — there is no request to approve — so this is

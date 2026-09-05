@@ -155,6 +155,13 @@ struct LeaderboardRowDTO: Decodable, Identifiable, Equatable {
     let isMe: Bool?
 }
 
+/// Whether this member wants pushes from this group. Per member, per group —
+/// it says nothing about anyone else's setting.
+struct GroupNotificationSettingsDTO: Decodable, Equatable {
+    let groupId: Int
+    let notificationsEnabled: Bool
+}
+
 struct GroupLeaderboardDTO: Decodable {
     let rows: [LeaderboardRowDTO]
     let me: LeaderboardRowDTO?
@@ -451,6 +458,32 @@ final class GroupsAPI {
     func fetchLeaderboard(_ id: Int, completion: @escaping (GroupLeaderboardDTO?) -> Void) {
         get(GroupLeaderboardDTO.self, WebService.groupLeaderboard(id),
             label: "leaderboard", completion: completion)
+    }
+
+    // MARK: Notifications
+
+    func fetchNotifications(_ id: Int, completion: @escaping (Bool?) -> Void) {
+        get(GroupNotificationSettingsDTO.self, WebService.groupNotifications(id),
+            label: "notifications") { completion($0?.notificationsEnabled) }
+    }
+
+    /// Answers with the setting the server ended up holding, so a write that
+    /// half-succeeded can't leave the switch showing something untrue.
+    func setNotifications(_ id: Int, enabled: Bool, completion: @escaping (Bool?) -> Void) {
+        ServiceModel.shared.putRequest(
+            endpoint: WebService.groupNotifications(id),
+            parameters: ["notifications_enabled": enabled]
+        ) { [weak self] result in
+            guard let self else { return }
+            DispatchQueue.main.async {
+                switch result {
+                case .success(let data):
+                    completion(try? self.decoder.decode(GroupNotificationSettingsDTO.self, from: data).notificationsEnabled)
+                case .failure:
+                    completion(nil)
+                }
+            }
+        }
     }
 
     // MARK: Live

@@ -54,6 +54,7 @@ struct GroupDetailView: View {
     private func openJoinedContent() {
         store.loadFeed(groupID)
         store.loadLeaderboard(groupID)
+        store.loadNotifications(groupID)
         store.openLive(groupID)
     }
 
@@ -112,6 +113,15 @@ struct GroupDetailView: View {
     private func header(for group: SaayrGroup) -> some View {
         VStack(spacing: 0) {
             SaduCover(cover: group.cover, height: 104)
+                // Only a member has a notification setting to change — the
+                // endpoint is per-member, and a preview has no one to set it
+                // for.
+                .overlay(alignment: .topTrailing) {
+                    if group.isJoined {
+                        notificationBell(for: group)
+                            .padding(10)
+                    }
+                }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(group.name)
@@ -139,6 +149,35 @@ struct GroupDetailView: View {
         .clipShape(RoundedRectangle(cornerRadius: GroupStyle.radiusLarge))
         .groupCardShadow()
         .padding(.bottom, 13)
+    }
+
+    /// The bell sits on the cover rather than in the app bar so it reads as
+    /// belonging to this group, next to the gear that opens the group's own
+    /// settings.
+    @ViewBuilder
+    private func notificationBell(for group: SaayrGroup) -> some View {
+        // Nothing is drawn until the server has answered. A bell that guesses
+        // would tell the player their pushes are on when they may not be.
+        if let enabled = store.notifications[group.id] {
+            Button {
+                store.setNotifications(group.id, enabled: !enabled, isEnglish: isEnglish) { ok in
+                    guard ok else { return }
+                    toasts.show(enabled ? copy.toastNotificationsOff : copy.toastNotificationsOn)
+                }
+            } label: {
+                Image(systemName: enabled ? "bell.fill" : "bell.slash.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(enabled ? GroupStyle.palm : GroupStyle.ink3)
+                    .frame(width: 34, height: 34)
+                    .background(
+                        Circle()
+                            .fill(Color.white)
+                            .overlay(Circle().stroke(GroupStyle.line, lineWidth: 1))
+                    )
+            }
+            .buttonStyle(GroupPressStyle())
+            .accessibilityLabel(enabled ? copy.notificationsOffLabel : copy.notificationsOnLabel)
+        }
     }
 
     private func metaLine(for group: SaayrGroup) -> String {
