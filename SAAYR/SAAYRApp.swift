@@ -154,6 +154,22 @@ struct SAAYRApp: App {
                         BossLiveFeedDebug.start()
                     }
                     #endif
+
+                    #if DEBUG
+                    // TEMPORARY harness: opens the first group this account is
+                    // in, to check the header against the live API.
+                    if ProcessInfo.processInfo.arguments.contains("-groupsDemo") {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                            GroupsAPI.shared.fetchMyGroups { list in
+                                guard let first = list?.first else { print("HARNESS: no groups"); return }
+                                GroupsAPI.shared.fetchDetail(first.id) { dto in
+                                    print("HARNESS: weeklyTotalPoints =", dto?.weeklyTotalPoints as Any)
+                                    invites.pendingGroup = dto
+                                }
+                            }
+                        }
+                    }
+                    #endif
                 }
             }
         }

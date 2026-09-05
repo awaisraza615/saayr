@@ -118,6 +118,9 @@ struct SaayrGroup: Identifiable, Equatable {
     /// Rank inside the group's own weekly board. Only the list endpoint
     /// carries it, so a group opened straight from Discover has none.
     var weeklyRank: Int?
+    /// The group's combined score for the week. Detail endpoint only, so it
+    /// is nil for a group that has only ever been seen in a list.
+    var weeklyTotalPoints: Int?
     var lastActiveAt: Date?
     var joinedAt: Date?
     var ownerName: String?
@@ -149,6 +152,7 @@ struct SaayrGroup: Identifiable, Equatable {
         let parsed = GroupRole(dto.myRole)
         role = (parsed == .none && dto.isMember) ? .member : parsed
         self.weeklyRank = weeklyRank
+        weeklyTotalPoints = dto.weeklyTotalPoints
         self.lastActiveAt = lastActiveAt
         joinedAt = dto.joinedAt
         ownerName = dto.ownerName

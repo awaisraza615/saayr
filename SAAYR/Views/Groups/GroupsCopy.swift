@@ -40,6 +40,11 @@ struct GroupsCopy {
         t("\(count) members", "\(count) أعضاء")
     }
 
+    /// The group's combined score for the week, shown under its name.
+    func weeklyPoints(_ points: Int) -> String {
+        t("\(points) pts this week", "\(points) نقطة هذا الأسبوع")
+    }
+
     /// "14th" / "3rd" — the rank pill on a group card.
     func ordinal(_ value: Int) -> String {
         guard isEnglish else { return "\(value)" }

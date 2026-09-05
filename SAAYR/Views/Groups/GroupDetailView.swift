@@ -144,6 +144,12 @@ struct GroupDetailView: View {
     private func metaLine(for group: SaayrGroup) -> String {
         var parts = [group.isPublic ? copy.publicBadge : copy.privateBadge,
                      copy.members(group.memberCount)]
+        // Absent rather than zero when the server didn't send it — a group
+        // seen only in a list has no total, and "0 pts" would be a claim the
+        // app can't make.
+        if let points = group.weeklyTotalPoints {
+            parts.append(copy.weeklyPoints(points))
+        }
         if group.isAdmin {
             parts.append(copy.youAreAdmin)
         } else if group.role == .member,

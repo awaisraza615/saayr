@@ -48,6 +48,10 @@ struct GroupDetailDTO: Decodable, Equatable {
     let myRole: String?
     let joinedAt: Date?
     let createdAt: Date
+    /// What the whole group has scored this week. Only the detail endpoint
+    /// carries it — the list endpoints don't — so a card in My Groups has no
+    /// total to show.
+    let weeklyTotalPoints: Int?
 }
 
 struct DiscoverResponseDTO: Decodable {
