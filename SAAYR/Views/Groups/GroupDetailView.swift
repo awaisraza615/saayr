@@ -239,14 +239,23 @@ struct GroupDetailView: View {
             )
             .padding(.bottom, 12)
 
-            // The server sends the top of the board plus the player's own row
-            // separately, so a rank in the eighties still fits on one screen.
-            let rows = board.rows.filter { $0.isMe != true }
-            let me = board.me ?? board.rows.first { $0.isMe == true }
+            // The server sends the top of the board, and the player's own row
+            // separately so that a rank in the eighties still fits on one
+            // screen. That second row is only wanted when the player isn't on
+            // the board already — appending it unconditionally took a player
+            // out of the standings and pinned them underneath, so someone in
+            // first place appeared below second.
+            let rows = board.rows
+            let mine = board.me ?? rows.first { $0.isMe == true }
+            // Matched on the user, not on the `is_me` flag: the flag is
+            // optional on the wire and a server that omits it on the list rows
+            // would otherwise show the player twice.
+            let listed = mine.map { me in rows.contains { $0.userId == me.userId } } ?? false
+            let me = listed ? nil : mine
             let needsGap = (me?.rank ?? 0) > (rows.last?.rank ?? 0) + 1
 
             ForEach(rows) { row in
-                GroupLeaderRowView(row: row, copy: copy)
+                GroupLeaderRowView(row: row, copy: copy, isMe: row.userId == mine?.userId)
                     .padding(.bottom, 8)
             }
 

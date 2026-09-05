@@ -4,6 +4,9 @@ import Alamofire
 struct ProfileView: View {
     @EnvironmentObject var userManager: UserManager
     @EnvironmentObject var authManager: AuthManager
+    /// Only read here to open the Groups cover — the stack inside it does the
+    /// rest.
+    @EnvironmentObject var invites: InviteLinkCoordinator
 
     @State private var isEditing = false
     @State private var fullName: String = ""
@@ -189,7 +192,9 @@ struct ProfileView: View {
             fullName = userManager.userData.fullName ?? ""
             email = userManager.userData.email ?? ""
             fetchSupportUnreadCount()
+            openGroupsForInviteIfNeeded()
         }
+        .onChange(of: invites.pendingGroup?.id) { _ in openGroupsForInviteIfNeeded() }
         // Groups is a stack of its own, not one screen — it gets the full
         // window the way Support does, rather than a sheet that would sit
         // under its own navigation.
@@ -229,6 +234,15 @@ struct ProfileView: View {
 
     }
     
+
+    /// A redeemed invite has to end up on the group's screen, and the whole
+    /// Groups stack lives inside this cover — so the cover opens first and
+    /// `GroupsView` takes the group from there.
+    private func openGroupsForInviteIfNeeded() {
+        guard invites.pendingGroup != nil else { return }
+        showGroups = true
+    }
+
     private func fetchSupportUnreadCount() {
         ServiceModel.shared.getRequest(endpoint: WebService.supportUnreadCount) { result in
             guard case .success(let data) = result,
@@ -620,4 +634,5 @@ struct ProfileMenuItem: View {
     ProfileView()
         .environmentObject(LanguageManager())
         .environmentObject(UserManager())
+        .environmentObject(InviteLinkCoordinator())
 }

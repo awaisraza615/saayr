@@ -6,6 +6,9 @@ struct ContentView: View {
     /// Owned by the router rather than local state, so a screen presented over
     /// the tab bar can switch tabs on dismiss.
     @EnvironmentObject var router: AppRouter
+    /// A tapped invite link lands here first — Groups lives behind the profile
+    /// tab, so the tab has to move before the cover can open.
+    @EnvironmentObject var invites: InviteLinkCoordinator
     @State private var showPVPPayment = false
 
     var body: some View {
@@ -53,6 +56,32 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $showPVPPayment) {
             ActiveMatchView(isPresented: $showPVPPayment)
         }
+        // Checked on appear as well as on change: a link that cold-launches the
+        // app can redeem before this view is in the hierarchy at all.
+        .onAppear { routeToInvitedGroup() }
+        .onChange(of: invites.pendingGroup?.id) { _ in routeToInvitedGroup() }
+        .alert(
+            inviteCopy.inviteLinkTitle,
+            isPresented: Binding(
+                get: { invites.failure != nil },
+                set: { if !$0 { invites.clearFailure() } }
+            )
+        ) {
+            Button(inviteCopy.inviteLinkOK, role: .cancel) { invites.clearFailure() }
+        } message: {
+            Text(invites.failure ?? "")
+        }
+    }
+
+    private var inviteCopy: GroupsCopy {
+        GroupsCopy(isEnglish: languageManager.currentLanguage == .english)
+    }
+
+    /// A dead link says so wherever the player is; a live one only needs the
+    /// tab moved — Profile picks it up from there.
+    private func routeToInvitedGroup() {
+        guard invites.pendingGroup != nil else { return }
+        router.show(.profile)
     }
 
     private func safeAreaTop() -> CGFloat {
@@ -67,4 +96,5 @@ struct ContentView: View {
         .environmentObject(LanguageManager())
         .environmentObject(UserManager())
         .environmentObject(AppRouter())
+        .environmentObject(InviteLinkCoordinator())
 }

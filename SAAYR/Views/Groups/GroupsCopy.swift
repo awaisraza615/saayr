@@ -232,3 +232,20 @@ extension GroupsCopy {
         isEnglish ? "Link expires \(relative)" : "ينتهي الرابط \(relative)"
     }
 }
+
+// MARK: - Invite links
+//
+// Shown when a shared link brought the player into the app, so these can turn
+// up over any tab rather than inside the Groups stack.
+
+extension GroupsCopy {
+
+    var inviteLinkTitle: String { isEnglish ? "Invite link" : "رابط الدعوة" }
+    var inviteLinkOK: String    { isEnglish ? "OK" : "حسنًا" }
+
+    /// The invite joins outright — there is no request to approve — so this is
+    /// a welcome, not a confirmation.
+    func toastJoinedViaLink(_ name: String) -> String {
+        isEnglish ? "You're in \(name) 🎉" : "انضممت إلى \(name) 🎉"
+    }
+}

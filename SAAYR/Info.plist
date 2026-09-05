@@ -6,6 +6,19 @@
 	<array>
 		<string>com.saayr.app.steps.sync</string>
 	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.saayr.app.invite</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>saayr</string>
+			</array>
+		</dict>
+	</array>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>MBXAccessToken</key>

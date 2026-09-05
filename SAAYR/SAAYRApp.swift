@@ -100,6 +100,9 @@ struct SAAYRApp: App {
     @StateObject private var userManager = UserManager()
     @StateObject private var authManager = AuthManager()
     @StateObject private var router = AppRouter()
+    /// Holds an invite link from the moment it arrives until a screen acts on
+    /// it — which may be several seconds and a whole sign-in later.
+    @StateObject private var invites = InviteLinkCoordinator()
 
     @Environment(\.scenePhase) private var scenePhase
     @State private var trackingRequested = false
@@ -111,6 +114,7 @@ struct SAAYRApp: App {
             Group {
                 if authManager.authState == .authenticated {
                     ContentView()
+                        .environmentObject(invites)
                         .environmentObject(languageManager)
                         .environmentObject(userManager)
                         .environmentObject(authManager)
@@ -118,12 +122,23 @@ struct SAAYRApp: App {
                         .environment(\.layoutDirection, languageManager.currentLanguage == .arabic ? .rightToLeft : .leftToRight)
                 } else {
                     AuthenticationFlow()
+                        .environmentObject(invites)
                         .environmentObject(languageManager)
                         .environmentObject(authManager)
                         .environment(\.layoutDirection, languageManager.currentLanguage == .arabic ? .rightToLeft : .leftToRight)
                 }
             }
             .preferredColorScheme(.light)
+            // A universal link reaches a SwiftUI app through both of these,
+            // and a cold launch can fire both for the same tap. The
+            // coordinator drops the duplicate.
+            .onOpenURL { url in
+                openInvite(url)
+            }
+            .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+                guard let url = activity.webpageURL else { return }
+                openInvite(url)
+            }
             .onAppear {
                 // If the app launches already authenticated (token persisted),
                 // start HealthKit tracking immediately.
@@ -161,11 +176,22 @@ struct SAAYRApp: App {
             if state == .authenticated {
                 setupHealthKit()
                 setupNotifications()
+                // A link tapped by a signed-out player waited through the
+                // whole phone-and-OTP flow to get here.
+                invites.redeemIfPending(isEnglish: languageManager.currentLanguage == .english)
             } else {
                 // User logged out — stop receiving HealthKit background wakes
                 HealthKitManager.shared.stopBackgroundDelivery()
             }
         }
+    }
+
+    private func openInvite(_ url: URL) {
+        invites.handle(
+            url,
+            isAuthenticated: authManager.authState == .authenticated,
+            isEnglish: languageManager.currentLanguage == .english
+        )
     }
 
     /// Request HealthKit authorization then enable background step delivery.

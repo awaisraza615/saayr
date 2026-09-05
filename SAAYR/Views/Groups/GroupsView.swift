@@ -42,6 +42,8 @@ final class GroupsToastCenter: ObservableObject {
 struct GroupsView: View {
 
     @EnvironmentObject var languageManager: LanguageManager
+    /// A link redeemed outside this stack still has to land inside it.
+    @EnvironmentObject var invites: InviteLinkCoordinator
     @Environment(\.dismiss) private var dismiss
 
     @StateObject private var store = GroupsStore()
@@ -72,13 +74,36 @@ struct GroupsView: View {
             }
         }
         .tint(GroupStyle.palm)
-        .onAppear { store.loadMine() }
+        .onAppear {
+            store.loadMine()
+            openInvitedGroup()
+        }
+        .onChange(of: invites.pendingGroup?.id) { _ in openInvitedGroup() }
         // Writes that fail report the server's own words rather than a
         // generic line — it is nearly always the more useful sentence.
         .onReceive(store.$errorMessage.compactMap { $0 }) { message in
             toasts.show(message)
             store.errorMessage = nil
         }
+    }
+
+    /// The last hop of an invite link. By this point the join has already
+    /// happened server-side — the redeem answered with the group in full — so
+    /// there is nothing to fetch before showing it.
+    private func openInvitedGroup() {
+        guard let dto = invites.pendingGroup else { return }
+
+        // Seeded rather than fetched, so the detail screen draws the real
+        // group on its first frame instead of a loading state.
+        store.details[dto.id] = SaayrGroup(dto)
+        // Replaced, not appended: a second link tapped while deep in the stack
+        // should land on the new group rather than pile on top of the old one.
+        path = [.group(dto.id)]
+        tab = 0
+        // My Groups is one longer than it was a moment ago.
+        store.loadMine(force: true)
+        toasts.show(copy.toastJoinedViaLink(dto.name))
+        invites.consume()
     }
 
     @ViewBuilder
