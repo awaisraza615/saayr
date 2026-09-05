@@ -10,6 +10,11 @@ struct ContentView: View {
     /// tab, so the tab has to move before the cover can open.
     @EnvironmentObject var invites: InviteLinkCoordinator
     @State private var showPVPPayment = false
+    /// Mirrored into local state rather than read straight off the
+    /// coordinator: an alert bound to a derived `Binding` gets dismissed by
+    /// SwiftUI on the next re-render, and this screen re-renders constantly.
+    @State private var inviteFailure: String?
+    @State private var showInviteFailure = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -60,16 +65,18 @@ struct ContentView: View {
         // app can redeem before this view is in the hierarchy at all.
         .onAppear { routeToInvitedGroup() }
         .onChange(of: invites.pendingGroup?.id) { _ in routeToInvitedGroup() }
-        .alert(
-            inviteCopy.inviteLinkTitle,
-            isPresented: Binding(
-                get: { invites.failure != nil },
-                set: { if !$0 { invites.clearFailure() } }
-            )
-        ) {
-            Button(inviteCopy.inviteLinkOK, role: .cancel) { invites.clearFailure() }
+        .onChange(of: invites.failure) { message in
+            guard let message else { return }
+            inviteFailure = message
+            showInviteFailure = true
+            // Cleared as soon as it's been copied out, so tapping the same
+            // link again is allowed to try once more.
+            invites.clearFailure()
+        }
+        .alert(inviteCopy.inviteLinkTitle, isPresented: $showInviteFailure) {
+            Button(inviteCopy.inviteLinkOK, role: .cancel) {}
         } message: {
-            Text(invites.failure ?? "")
+            Text(inviteFailure ?? "")
         }
     }
 
