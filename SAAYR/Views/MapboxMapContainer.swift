@@ -196,7 +196,6 @@ struct MapboxMapContainer: UIViewRepresentable {
         // Zone annotation state
         private var zoneFogManager: PolygonAnnotationManager?
         private var zoneFillManager: PolygonAnnotationManager?
-        private var zoneOutlineManager: PolylineAnnotationManager?
         private var zoneLockedFillManager: PolygonAnnotationManager?
         private var zoneLockedOutlineManager: PolylineAnnotationManager?
         private var zoneLabelManager: PointAnnotationManager?
@@ -207,10 +206,11 @@ struct MapboxMapContainer: UIViewRepresentable {
         private var bossZoneOutlineManager: PolylineAnnotationManager?
         private var currentBossZonesDigest: Int = -1
 
-        /// Zone boundaries: same green as a merchant, lighter fill because the
-        /// areas are far larger. `fog` blacks out everything outside them.
+        /// Zone shading. An unlocked zone is a light green wash with no
+        /// border — it is already explored, so nothing needs to draw the eye
+        /// to it. `fog` blacks out everything outside the zones, and locked
+        /// zones keep a stroke because they are what is still to be found.
         private enum ZoneStyle {
-            static let stroke = StyleColor(red: 21, green: 106, blue: 71, alpha: 1.0)
             static let fill   = StyleColor(red: 21, green: 106, blue: 71, alpha: 0.10)
             /// The rest of the world is blacked out rather than dimmed — only
             /// the zones are available to be viewed. Held just short of opaque
@@ -220,7 +220,6 @@ struct MapboxMapContainer: UIViewRepresentable {
             /// basemap. Keep it well clear of `lockedFill` below so locked
             /// zones stay a distinct shade from out-of-bounds ground.
             static let fog    = StyleColor(red: 8, green: 20, blue: 16, alpha: 0.82)
-            static let lineWidth: Double = 2.5
 
             /// Locked zones sit in their own hole in the fog and are shaded
             /// here instead — dark enough to read as off-limits, sheer enough
@@ -426,10 +425,6 @@ struct MapboxMapContainer: UIViewRepresentable {
                 mapView.annotations.removeAnnotationManager(withId: "zones-fill")
                 zoneFillManager = nil
             }
-            if zoneOutlineManager != nil {
-                mapView.annotations.removeAnnotationManager(withId: "zones-outline")
-                zoneOutlineManager = nil
-            }
             if zoneLockedFillManager != nil {
                 mapView.annotations.removeAnnotationManager(withId: "zones-locked-fill")
                 zoneLockedFillManager = nil
@@ -466,29 +461,17 @@ struct MapboxMapContainer: UIViewRepresentable {
                 fills.append(fill)
             }
 
-            // Outlines are merged so the seams between neighbouring zones
-            // aren't drawn — only the outer boundary of the whole group.
-            var outlines: [PolylineAnnotation] = []
-            for ring in Self.mergedRings(of: unlockedRings) where ring.count >= 2 {
-                var outline = PolylineAnnotation(lineCoordinates: ring)
-                outline.lineColor = ZoneStyle.stroke
-                outline.lineWidth = ZoneStyle.lineWidth
-                outline.lineJoin = .round
-                outlines.append(outline)
-            }
-
+            // No outline. An unlocked zone is somewhere the player has already
+            // been, and a border around it keeps drawing attention to ground
+            // that is finished with. What is left to explore is what should be
+            // outlined, so only locked zones carry a stroke — the hard edge
+            // between the light fill and the fog is enough to read the shape.
             guard !fills.isEmpty else { return }
 
             let fillManager = mapView.annotations.makePolygonAnnotationManager(id: "zones-fill")
             fillManager.slot = Self.overlaySlot
             fillManager.annotations = fills
             zoneFillManager = fillManager
-
-            let lineManager = mapView.annotations.makePolylineAnnotationManager(id: "zones-outline")
-            lineManager.slot = Self.overlaySlot
-            lineManager.lineCap = .round
-            lineManager.annotations = outlines
-            zoneOutlineManager = lineManager
         }
 
         // MARK: - Boss Zone Annotations
