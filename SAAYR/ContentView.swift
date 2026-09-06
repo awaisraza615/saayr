@@ -6,7 +6,15 @@ struct ContentView: View {
     /// Owned by the router rather than local state, so a screen presented over
     /// the tab bar can switch tabs on dismiss.
     @EnvironmentObject var router: AppRouter
+    /// A tapped invite link lands here first — Groups lives behind the profile
+    /// tab, so the tab has to move before the cover can open.
+    @EnvironmentObject var invites: InviteLinkCoordinator
     @State private var showPVPPayment = false
+    /// Mirrored into local state rather than read straight off the
+    /// coordinator: an alert bound to a derived `Binding` gets dismissed by
+    /// SwiftUI on the next re-render, and this screen re-renders constantly.
+    @State private var inviteFailure: String?
+    @State private var showInviteFailure = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -53,6 +61,34 @@ struct ContentView: View {
         .fullScreenCover(isPresented: $showPVPPayment) {
             ActiveMatchView(isPresented: $showPVPPayment)
         }
+        // Checked on appear as well as on change: a link that cold-launches the
+        // app can redeem before this view is in the hierarchy at all.
+        .onAppear { routeToInvitedGroup() }
+        .onChange(of: invites.pendingGroup?.id) { _ in routeToInvitedGroup() }
+        .onChange(of: invites.failure) { message in
+            guard let message else { return }
+            inviteFailure = message
+            showInviteFailure = true
+            // Cleared as soon as it's been copied out, so tapping the same
+            // link again is allowed to try once more.
+            invites.clearFailure()
+        }
+        .alert(inviteCopy.inviteLinkTitle, isPresented: $showInviteFailure) {
+            Button(inviteCopy.inviteLinkOK, role: .cancel) {}
+        } message: {
+            Text(inviteFailure ?? "")
+        }
+    }
+
+    private var inviteCopy: GroupsCopy {
+        GroupsCopy(isEnglish: languageManager.currentLanguage == .english)
+    }
+
+    /// A dead link says so wherever the player is; a live one only needs the
+    /// tab moved — Profile picks it up from there.
+    private func routeToInvitedGroup() {
+        guard invites.pendingGroup != nil else { return }
+        router.show(.profile)
     }
 
     private func safeAreaTop() -> CGFloat {
@@ -67,4 +103,5 @@ struct ContentView: View {
         .environmentObject(LanguageManager())
         .environmentObject(UserManager())
         .environmentObject(AppRouter())
+        .environmentObject(InviteLinkCoordinator())
 }

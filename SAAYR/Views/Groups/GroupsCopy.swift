@@ -40,6 +40,11 @@ struct GroupsCopy {
         t("\(count) members", "\(count) أعضاء")
     }
 
+    /// The group's combined score for the week, shown under its name.
+    func weeklyPoints(_ points: Int) -> String {
+        t("\(points) pts this week", "\(points) نقطة هذا الأسبوع")
+    }
+
     /// "14th" / "3rd" — the rank pill on a group card.
     func ordinal(_ value: Int) -> String {
         guard isEnglish else { return "\(value)" }
@@ -230,5 +235,27 @@ extension GroupsCopy {
 
     func expires(_ relative: String) -> String {
         isEnglish ? "Link expires \(relative)" : "ينتهي الرابط \(relative)"
+    }
+}
+
+// MARK: - Invite links
+//
+// Shown when a shared link brought the player into the app, so these can turn
+// up over any tab rather than inside the Groups stack.
+
+extension GroupsCopy {
+
+    var inviteLinkTitle: String { isEnglish ? "Invite link" : "رابط الدعوة" }
+
+    var notificationsOnLabel: String  { isEnglish ? "Turn on notifications" : "تشغيل الإشعارات" }
+    var notificationsOffLabel: String { isEnglish ? "Turn off notifications" : "إيقاف الإشعارات" }
+    var toastNotificationsOn: String  { isEnglish ? "Notifications on 🔔" : "الإشعارات مفعّلة 🔔" }
+    var toastNotificationsOff: String { isEnglish ? "Notifications off 🔕" : "الإشعارات متوقفة 🔕" }
+    var inviteLinkOK: String    { isEnglish ? "OK" : "حسنًا" }
+
+    /// The invite joins outright — there is no request to approve — so this is
+    /// a welcome, not a confirmation.
+    func toastJoinedViaLink(_ name: String) -> String {
+        isEnglish ? "You're in \(name) 🎉" : "انضممت إلى \(name) 🎉"
     }
 }

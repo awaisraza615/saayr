@@ -83,13 +83,17 @@ class UserModel {
         }
     }
     
+    /// Nothing ever writes this, so in practice it is always nil. It used to
+    /// fall back to "en" — copied from `languageCode` above — which is why
+    /// every request went out with `Latitude: en`. Nil leaves the header off
+    /// rather than sending a coordinate the app doesn't have.
     var latitude: String? {
         get {
             if let savedUserData = userDefaults.data(forKey: latitudeKey),
                let decodedUser = try? JSONDecoder().decode(String.self, from: savedUserData) {
                 return decodedUser
             }
-            return "en"
+            return nil
         }
         set {
             if let user = newValue {
@@ -107,7 +111,7 @@ class UserModel {
                let decodedUser = try? JSONDecoder().decode(String.self, from: savedUserData) {
                 return decodedUser
             }
-            return "en"
+            return nil
         }
         set {
             if let user = newValue {
@@ -115,7 +119,7 @@ class UserModel {
                     userDefaults.set(encodedUser, forKey: longitudeKey)
                 }
             } else {
-                userDefaults.removeObject(forKey: languageCodeKey)
+                userDefaults.removeObject(forKey: longitudeKey)
             }
         }
     }

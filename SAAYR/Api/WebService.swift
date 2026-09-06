@@ -113,6 +113,7 @@ class WebService {
     static func groupLeaderboard(_ id: Int) -> String { baseUrl + "groups/\(id)/leaderboard" }
     static func groupReport(_ id: Int) -> String      { baseUrl + "groups/\(id)/report" }
     static func groupLive(_ id: Int) -> String        { baseUrl + "groups/\(id)/live" }
+    static func groupNotifications(_ id: Int) -> String { baseUrl + "groups/\(id)/notifications" }
 
     // MARK: - User
     static var profile       = baseUrl + "user/profile"

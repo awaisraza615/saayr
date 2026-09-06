@@ -80,6 +80,12 @@ struct GroupInviteSheet: View {
 
     private var link: InviteLinkDTO? { store.inviteLinks[groupID] }
 
+    /// What gets shown and copied — the server's URL with the group's name
+    /// added, so the web page can say which group the invite is for.
+    private var shareURL: String? {
+        link.map { InviteLinkCoordinator.shareURL($0.url, groupName: store.group(groupID)?.name) }
+    }
+
     var body: some View {
         GroupSheetBody(title: copy.inviteMembers, subtitle: copy.inviteSub) {
             GroupSearchField(text: $query, placeholder: copy.searchUsername)
@@ -97,9 +103,9 @@ struct GroupInviteSheet: View {
                 .padding(.bottom, 8)
                 .padding(.horizontal, 2)
 
-            if let link {
+            if let link, let shareURL {
                 HStack(spacing: 9) {
-                    Text(link.url)
+                    Text(shareURL)
                         .font(.system(size: 12, design: .monospaced))
                         .foregroundColor(GroupStyle.ink2)
                         .lineLimit(1)
@@ -110,7 +116,7 @@ struct GroupInviteSheet: View {
                         .environment(\.layoutDirection, .leftToRight)
 
                     GroupMiniButton(title: copy.copy) {
-                        UIPasteboard.general.string = link.url
+                        UIPasteboard.general.string = shareURL
                         toasts.show(copy.toastLinkCopied)
                     }
                 }

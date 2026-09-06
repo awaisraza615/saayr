@@ -54,6 +54,7 @@ struct GroupDetailView: View {
     private func openJoinedContent() {
         store.loadFeed(groupID)
         store.loadLeaderboard(groupID)
+        store.loadNotifications(groupID)
         store.openLive(groupID)
     }
 
@@ -112,6 +113,15 @@ struct GroupDetailView: View {
     private func header(for group: SaayrGroup) -> some View {
         VStack(spacing: 0) {
             SaduCover(cover: group.cover, height: 104)
+                // Only a member has a notification setting to change — the
+                // endpoint is per-member, and a preview has no one to set it
+                // for.
+                .overlay(alignment: .topTrailing) {
+                    if group.isJoined {
+                        notificationBell(for: group)
+                            .padding(10)
+                    }
+                }
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(group.name)
@@ -141,9 +151,44 @@ struct GroupDetailView: View {
         .padding(.bottom, 13)
     }
 
+    /// The bell sits on the cover rather than in the app bar so it reads as
+    /// belonging to this group, next to the gear that opens the group's own
+    /// settings.
+    @ViewBuilder
+    private func notificationBell(for group: SaayrGroup) -> some View {
+        // Nothing is drawn until the server has answered. A bell that guesses
+        // would tell the player their pushes are on when they may not be.
+        if let enabled = store.notifications[group.id] {
+            Button {
+                store.setNotifications(group.id, enabled: !enabled, isEnglish: isEnglish) { ok in
+                    guard ok else { return }
+                    toasts.show(enabled ? copy.toastNotificationsOff : copy.toastNotificationsOn)
+                }
+            } label: {
+                Image(systemName: enabled ? "bell.fill" : "bell.slash.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(enabled ? GroupStyle.palm : GroupStyle.ink3)
+                    .frame(width: 34, height: 34)
+                    .background(
+                        Circle()
+                            .fill(Color.white)
+                            .overlay(Circle().stroke(GroupStyle.line, lineWidth: 1))
+                    )
+            }
+            .buttonStyle(GroupPressStyle())
+            .accessibilityLabel(enabled ? copy.notificationsOffLabel : copy.notificationsOnLabel)
+        }
+    }
+
     private func metaLine(for group: SaayrGroup) -> String {
         var parts = [group.isPublic ? copy.publicBadge : copy.privateBadge,
                      copy.members(group.memberCount)]
+        // Absent rather than zero when the server didn't send it — a group
+        // seen only in a list has no total, and "0 pts" would be a claim the
+        // app can't make.
+        if let points = group.weeklyTotalPoints {
+            parts.append(copy.weeklyPoints(points))
+        }
         if group.isAdmin {
             parts.append(copy.youAreAdmin)
         } else if group.role == .member,
@@ -239,14 +284,23 @@ struct GroupDetailView: View {
             )
             .padding(.bottom, 12)
 
-            // The server sends the top of the board plus the player's own row
-            // separately, so a rank in the eighties still fits on one screen.
-            let rows = board.rows.filter { $0.isMe != true }
-            let me = board.me ?? board.rows.first { $0.isMe == true }
+            // The server sends the top of the board, and the player's own row
+            // separately so that a rank in the eighties still fits on one
+            // screen. That second row is only wanted when the player isn't on
+            // the board already — appending it unconditionally took a player
+            // out of the standings and pinned them underneath, so someone in
+            // first place appeared below second.
+            let rows = board.rows
+            let mine = board.me ?? rows.first { $0.isMe == true }
+            // Matched on the user, not on the `is_me` flag: the flag is
+            // optional on the wire and a server that omits it on the list rows
+            // would otherwise show the player twice.
+            let listed = mine.map { me in rows.contains { $0.userId == me.userId } } ?? false
+            let me = listed ? nil : mine
             let needsGap = (me?.rank ?? 0) > (rows.last?.rank ?? 0) + 1
 
             ForEach(rows) { row in
-                GroupLeaderRowView(row: row, copy: copy)
+                GroupLeaderRowView(row: row, copy: copy, isMe: row.userId == mine?.userId)
                     .padding(.bottom, 8)
             }
 

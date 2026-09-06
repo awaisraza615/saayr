@@ -118,6 +118,9 @@ struct SaayrGroup: Identifiable, Equatable {
     /// Rank inside the group's own weekly board. Only the list endpoint
     /// carries it, so a group opened straight from Discover has none.
     var weeklyRank: Int?
+    /// The group's combined score for the week. Detail endpoint only, so it
+    /// is nil for a group that has only ever been seen in a list.
+    var weeklyTotalPoints: Int?
     var lastActiveAt: Date?
     var joinedAt: Date?
     var ownerName: String?
@@ -149,6 +152,7 @@ struct SaayrGroup: Identifiable, Equatable {
         let parsed = GroupRole(dto.myRole)
         role = (parsed == .none && dto.isMember) ? .member : parsed
         self.weeklyRank = weeklyRank
+        weeklyTotalPoints = dto.weeklyTotalPoints
         self.lastActiveAt = lastActiveAt
         joinedAt = dto.joinedAt
         ownerName = dto.ownerName
@@ -183,6 +187,8 @@ final class GroupsStore: ObservableObject {
     @Published var members: [Int: [GroupMemberDTO]] = [:]
     @Published var requests: [Int: [JoinRequestDTO]] = [:]
     @Published var inviteLinks: [Int: InviteLinkDTO] = [:]
+    /// Whether this player wants pushes from a group. Absent until asked for.
+    @Published var notifications: [Int: Bool] = [:]
     @Published var inviteResults: [InviteSearchResultDTO] = []
     @Published var isSearchingInvites = false
 
@@ -290,6 +296,35 @@ final class GroupsStore: ObservableObject {
         GroupsAPI.shared.fetchRequests(id) { [weak self] list in
             guard let self, let list else { return }
             requests[id] = list
+        }
+    }
+
+    func loadNotifications(_ id: Int) {
+        GroupsAPI.shared.fetchNotifications(id) { [weak self] enabled in
+            guard let self, let enabled else { return }
+            notifications[id] = enabled
+        }
+    }
+
+    /// Flipped on screen first, then confirmed. The server's answer is taken
+    /// as final — if the write failed it says nothing, and the switch goes
+    /// back to where it was rather than lying about a push that won't come.
+    func setNotifications(_ id: Int, enabled: Bool, isEnglish: Bool, completion: @escaping (Bool) -> Void) {
+        let previous = notifications[id]
+        notifications[id] = enabled
+
+        GroupsAPI.shared.setNotifications(id, enabled: enabled) { [weak self] settled in
+            guard let self else { return }
+            guard let settled else {
+                notifications[id] = previous
+                errorMessage = isEnglish
+                    ? "Couldn't change notifications. Try again."
+                    : "تعذّر تغيير الإشعارات. حاول مرة أخرى."
+                completion(false)
+                return
+            }
+            notifications[id] = settled
+            completion(true)
         }
     }
 
