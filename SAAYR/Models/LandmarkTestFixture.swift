@@ -13,7 +13,7 @@ import CoreLocation
 enum LandmarkTestFixture {
 
     /// Master switch. Set to `false` to take the fake landmark off the map.
-    static let isEnabled = true
+    static let isEnabled = false
 
     /// Its id is negative so it can never collide with a real location, which
     /// also keeps its saved "discovered" state out of the way of real data.
