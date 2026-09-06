@@ -161,7 +161,14 @@ struct MapView: View {
                     // Widen the merchant fetch when the view grows, then trigger
                     // a nearby fetch if the camera was dragged far enough.
                     handleZoomChange()
-                    handleMapDrag(cameraState.center)
+                    // Panning deliberately fetches nothing. `/locations/nearby`
+                    // is read by the server as "the player is standing here" —
+                    // it answers with `newly_unlocked_zone` — so handing it a
+                    // camera centre unlocked zones by dragging the map. Pins
+                    // are loaded around the player instead, at a radius wide
+                    // enough for the current zoom, and anything outside an
+                    // unlocked zone is filtered out before it can be drawn
+                    // anyway. Do not reintroduce a fetch from here.
                 },
                 onTapLocation: { location in
                     selectedLocation = location
@@ -543,35 +550,16 @@ struct MapView: View {
         return Int(min(max(halfSpan.rounded(.up), 5), 50))
     }
 
-    /// Zooming out doesn't move the centre, so `handleMapDrag` never fires for
-    /// it — but the view can now show far more ground than the last fetch
-    /// covered. Refetch once the visible radius has meaningfully outgrown it.
+    /// Zooming out exposes ground the last fetch's radius didn't cover, so it
+    /// asks again with a wider one. The screen decides the radius; the player
+    /// decides the centre. Those were the same call before, which is what let
+    /// a drag report a position the player was nowhere near.
     private func handleZoomChange() {
         let radius = fetchRadiusKM
         guard Double(radius) > Double(max(lastFetchRadiusKM, 1)) * 1.5 else { return }
+        guard let coordinate = cameraLocation?.coordinate else { return }
 
-        scheduleNearbyFetch(
-            CLLocationCoordinate2D(
-                latitude: visibleRegion.centerLat,
-                longitude: visibleRegion.centerLng
-            ),
-            ignoringDistance: true
-        )
-    }
-
-    private func handleMapDrag(_ newCenter: CLLocationCoordinate2D) {
-        guard let lastCenter = lastFetchCenter else {
-            scheduleNearbyFetch(newCenter)
-            return
-        }
-
-        let old = CLLocation(latitude: lastCenter.latitude, longitude: lastCenter.longitude)
-        let new = CLLocation(latitude: newCenter.latitude, longitude: newCenter.longitude)
-        let distanceKM = old.distance(from: new) / 1000
-
-        if distanceKM >= 5 {
-            scheduleNearbyFetch(newCenter)
-        }
+        scheduleNearbyFetch(coordinate, ignoringDistance: true)
     }
 
     /// Where to point the camera. Falls back to the raw fix so a position the
